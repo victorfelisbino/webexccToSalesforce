@@ -14,7 +14,8 @@
   "type": "module",
   "dependencies": {
     "@babel/core": "^7.18.2",
-    "@wxcc-desktop/sdk": "^1.2.9"
+    "@wxcc-desktop/sdk": "^1.2.9",
+    "nodemon": "^2.0.20"
   },
   "devDependencies": {
     "babel-loader": "^8.2.5",
