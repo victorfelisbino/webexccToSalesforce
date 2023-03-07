@@ -21,7 +21,7 @@ class DesktopSDKSample extends HTMLElement {
     this.init();
     this.subscribeAgentContactDataEvents();
     this.getAgentInfo();
-    this.publishSampleMC();
+    this.publishMC();
   }
 
   subscribeToSalesforceMC(){
@@ -31,16 +31,20 @@ class DesktopSDKSample extends HTMLElement {
   onPublishMessage(message) {
     console.log('*****Salesforce message received: '+ message);
   }
-  subscribeSampleMCCallback(result) {
-    console.log('***lightningMessageServiceCallback***'+JSON.stringify(result));
+  subscribeCallback(result) {
+    console.log('***subscribeCallback***'+JSON.stringify(result));
     if (result.success) {
       console.log('*****Subscription: '+ result.subscription);
     } else {
       console.log('*****Subscription_errors: '+ result.errors);
     }
   }
-  publishSampleMC(payload) {
-    console.log('***publishSampleMC - Method called');
+  publishToSalesforce(payload){
+    this.callApexClass(payload);
+    this.publishMC(payload);
+  }
+  publishMC(payload) {
+    console.log('***publishMC - Method called');
     const message = {
       from: "LightningMessageService_OpenCTI_TestPage",
       type: "INBOUND",
@@ -49,14 +53,25 @@ class DesktopSDKSample extends HTMLElement {
     };
     console.log('**** sending message to salesforce **** ');
     sforce.opencti.publish({channelName: salesforceMCChannel, message: message});
-    
   }
-  lightningMessageServiceCallback(result) {
-    console.log('***lightningMessageServiceCallback***'+JSON.stringify(result));
+
+  callApexClass(payload) {
+    console.log('**** calling apex class **** ');
+    let param = {
+      apexClass: 'callHandler',
+      methodName: 'newEvent',
+      methodParams: 'eventData=' + payload,
+    };
+    param.callback = serviceCallback;
+    sforce.opencti.runApex(param);
+  }
+
+  serviceCallback(result) {
+    console.log('***serviceCallback***'+JSON.stringify(result));
     if (result.success) {
-      console.log('*****MCcallback: ' + result.returnValue);
+      console.log('*****callback: ' + result.returnValue);
     } else {
-      console.log('*****MCcallback_error: ' + result.errors);
+      console.log('*****callback_error: ' + result.errors);
     }
   }
   disconnectedCallback() {
@@ -95,7 +110,7 @@ class DesktopSDKSample extends HTMLElement {
   getAgentInfo() {
     const latestData = Desktop.agentStateInfo.latestData;
     logger.info('*****myLatestData', latestData);
-    this.publishSampleMC(latestData);
+    this.publishMC(latestData);
   }
 
   // Get interactionID, but more info can be obtained from this method
@@ -189,30 +204,90 @@ class DesktopSDKSample extends HTMLElement {
   // Subscribing to Agent contact event
   subscribeAgentContactDataEvents() {
     //Listofavailableagent-contactaqmnotifsevents:
-    Desktop.agentContact.addEventListener("eAgentContact",msg=>console.log('*****eAgentContact: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentContactAssigned",msg=>console.log('*****eAgentContactAssigned: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentContactEnded",msg=>console.log('*****eAgentContactEnded: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentContactWrappedUp",msg=>console.log('*****eAgentContactWrappedUp: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentOfferContact",msg=>{
-      console.log('*****eAgentOfferContact: '+ JSON.stringify(msg));
-      this.publishSampleMC(JSON.stringify(msg));
+    Desktop.agentContact.addEventListener("eAgentContact",msg=>{
+      console.log('*****eAgentContact*****');
+      this.publishToSalesforce(JSON.stringify(msg));
     });
-    Desktop.agentContact.addEventListener("eAgentOfferContactRona",msg=>console.log('*****eAgentOfferContactRona: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentOfferConsult",msg=>console.log('*****eAgentOfferConsult: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentWrapup",msg=>console.log('*****eAgentWrapup: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentContactHeld",msg=>console.log('*****eAgentContactHeld: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentContactUnHeld",msg=>console.log('*****eAgentContactUnHeld: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eCallRecordingStarted",msg=>console.log('*****eCallRecordingStarted: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentConsultCreated",msg=>console.log('*****eAgentConsultCreated: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentConsultConferenced",msg=>console.log('*****eAgentConsultConferenced: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentConsultEnded",msg=>console.log('*****eAgentConsultEnded: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentCtqCancelled",msg=>console.log('*****eAgentCtqCancelled: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentConsulting",msg=>console.log('*****eAgentConsulting: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentConsultFailed",msg=>console.log('*****eAgentConsultFailed: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentConsultEndFailed",msg=>console.log('*****eAgentConsultEndFailed: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentCtqFailed",msg=>console.log('*****eAgentCtqFailed: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentCtqCancelFailed",msg=>console.log('*****eAgentCtqCancelFailed: '+ JSON.stringify(msg)));
-    Desktop.agentContact.addEventListener("eAgentConsultConferenceEndFailed",msg=>console.log('*****eAgentConsultConferenceEndFailed: '+ JSON.stringify(msg)));
+    Desktop.agentContact.addEventListener("eAgentContactAssigned",msg=>{
+      console.log('*****eAgentContactAssigned*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentContactEnded",msg=>{
+      console.log('*****eAgentContactEnded*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentContactWrappedUp",msg=>{
+      console.log('*****eAgentContactWrappedUp*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentOfferContact",msg=>{
+      console.log('*****eAgentOfferContact*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentOfferContactRona",msg=>{
+      console.log('*****eAgentOfferContactRona*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentOfferConsult",msg=>{
+      console.log('*****eAgentOfferConsult*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentWrapup",msg=>{
+      console.log('*****eAgentWrapup*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentContactHeld",msg=>{
+      console.log('*****eAgentContactHeld*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentContactUnHeld",msg=>{
+      console.log('*****eAgentContactUnHeld*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eCallRecordingStarted",msg=>{
+      console.log('*****eCallRecordingStarted*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentConsultCreated",msg=>{
+      console.log('*****eAgentConsultCreated*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentConsultConferenced",msg=>{
+      console.log('*****eAgentConsultConferenced*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentConsultEnded",msg=>{
+      console.log('*****eAgentConsultEnded*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentCtqCancelled",msg=>{
+      console.log('*****eAgentCtqCancelled*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentConsulting",msg=>{
+      console.log('*****eAgentConsulting*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentConsultFailed",msg=>{
+      console.log('*****eAgentConsultFailed*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentConsultEndFailed",msg=>{
+      console.log('*****eAgentConsultEndFailed*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentCtqFailed",msg=>{
+      console.log('*****eAgentCtqFailed*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentCtqCancelFailed",msg=>{
+      console.log('*****eAgentCtqCancelFailed*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
+    Desktop.agentContact.addEventListener("eAgentConsultConferenceEndFailed",msg=>{
+      console.log('*****eAgentConsultConferenceEndFailed*****');
+      this.publishToSalesforce(JSON.stringify(msg));
+    });
   }
 }
 
