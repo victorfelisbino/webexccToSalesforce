@@ -2,7 +2,7 @@ const path = require("path");
 
 const config = {
   mode: "production",
-  entry: "./src/sa-ds-sdk.js",
+  entry: "./src/SFEventsWidget.js",
   output: {
     path: path.resolve(__dirname, "src/build"),
     filename: "bundle.js",

@@ -21,16 +21,17 @@ class DesktopSDKSample extends HTMLElement {
     this.init();
     this.subscribeAgentContactDataEvents();
     this.getAgentInfo();
-    this.publishMC();
   }
 
   subscribeToSalesforceMC(){
-    console.log('***subscribeToSalesforceMC*** '+ salesforceMCChannel);
-    sforce.opencti.subscribe({channelName: salesforceMCChannel, listener: onPublishMessage, callback: subscribeSampleMCCallback});
+    console.log('***subscribeToSalesforceMC*** '+ this.salesforceMCChannel);
+    sforce.opencti.subscribe({channelName: this.salesforceMCChannel, listener: onPublishMessage, callback: subscribeSampleMCCallback});
   }
+
   onPublishMessage(message) {
     console.log('*****Salesforce message received: '+ message);
   }
+
   subscribeCallback(result) {
     console.log('***subscribeCallback***'+JSON.stringify(result));
     if (result.success) {
@@ -39,41 +40,58 @@ class DesktopSDKSample extends HTMLElement {
       console.log('*****Subscription_errors: '+ result.errors);
     }
   }
+
   publishToSalesforce(payload){
     this.callApexClass(payload);
     this.publishMC(payload);
   }
+
   publishMC(payload) {
-    console.log('***publishMC - Method called');
+    //console.log('***publishMC - Method called');
     const message = {
       from: "LightningMessageService_OpenCTI_TestPage",
       type: "INBOUND",
       payload: payload ? payload : 'test',
       time: new Date().toLocaleTimeString()
     };
-    console.log('**** sending message to salesforce **** ');
+    //console.log('**** sending message to salesforce **** ');
     sforce.opencti.publish({channelName: salesforceMCChannel, message: message});
   }
 
   callApexClass(payload) {
     console.log('**** calling apex class **** ');
+    console.log('*** payload to salesforce: ' + payload);
+    console.log(payload);
     let param = {
       apexClass: 'callHandler',
       methodName: 'newEvent',
-      methodParams: 'eventData=' + payload,
+      methodParams: 'eventData=' + JSON.stringify(payload),
     };
-    param.callback = serviceCallback;
+    param.callback = response => {
+      this.serviceCallback(response);
+    }
     sforce.opencti.runApex(param);
   }
 
   serviceCallback(result) {
-    console.log('***serviceCallback***'+JSON.stringify(result));
     if (result.success) {
-      console.log('*****callback: ' + result.returnValue);
+      let returnedValue = result.returnValue;
+      let apexResults = JSON.parse(returnedValue.runApex);
+      if(apexResults.type === 'CaseId'){
+        console.log('*** POP CASE: Message:' + apexResults.message +' | Value: '+ apexResults.value);
+        sforce.opencti.screenPop({type: sforce.opencti.SCREENPOP_TYPE.SOBJECT, params : {recordId: apexResults.value}});
+      }else if(apexResults.type === 'CustomTab'){
+        console.log('*** POP TAB: Message:' + apexResults.message +' | Value: '+ apexResults.value);
+        sforce.opencti.screenPop({type: sforce.opencti.SCREENPOP_TYPE.URL, params : {url: '#/n/'+apexResults.value}});
+      }else{
+        console.log('*** type not found: ' + apexResults.type + ' | Message:' + apexResults.message +' | Value: '+ apexResults.value);
+      }
+
     } else {
-      console.log('*****callback_error: ' + result.errors);
+      console.log('*****callback_error: ' + JSON.stringify(result.errors));
     }
   }
+
   disconnectedCallback() {
     // alert("remove some functions...")
     Desktop.agentContact.removeAllEventListeners();
@@ -87,30 +105,28 @@ class DesktopSDKSample extends HTMLElement {
     outDialOrigin.data.data.mockOutdialAniList[0].id;
 
     // Searching for default unavailable code in list of unavailable codes.
-    let i = 0;
-    logger.info('*****Collecting Idle Code length..');
-    const auxCount = Desktop.agentStateInfo.latestData.idleCodes.length;
-    while (i <= auxCount - 1) {
-      logger.info(
-        '*****AuxCode list ',
-        Desktop.agentStateInfo.latestData.idleCodes[i].id
-      );
+    // let i = 0;
+    // logger.info('*****Collecting Idle Code length..');
+    // const auxCount = Desktop.agentStateInfo.latestData.idleCodes.length;
+    // while (i <= auxCount - 1) {
+    //   logger.info(
+    //     '*****AuxCode list ',
+    //     Desktop.agentStateInfo.latestData.idleCodes[i].id
+    //   );
 
-      if (Desktop.agentStateInfo.latestData.idleCodes[i].isDefault == true) {
-        this.state.defaultAuxCode =
-          Desktop.agentStateInfo.latestData.idleCodes[i].id;
-        logger.info('*****default aux found ', this.state.defaultAuxCode);
-        break;
-      }
-      i++;
-    }
+    //   if (Desktop.agentStateInfo.latestData.idleCodes[i].isDefault == true) {
+    //     this.state.defaultAuxCode =
+    //       Desktop.agentStateInfo.latestData.idleCodes[i].id;
+    //     logger.info('*****default aux found ', this.state.defaultAuxCode);
+    //     break;
+    //   }
+    //   i++;
+    // }
   }
 
   // Sample function to print latest data of agent
   getAgentInfo() {
     const latestData = Desktop.agentStateInfo.latestData;
-    logger.info('*****myLatestData', latestData);
-    this.publishMC(latestData);
   }
 
   // Get interactionID, but more info can be obtained from this method
@@ -206,89 +222,89 @@ class DesktopSDKSample extends HTMLElement {
     //Listofavailableagent-contactaqmnotifsevents:
     Desktop.agentContact.addEventListener("eAgentContact",msg=>{
       console.log('*****eAgentContact*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentContactAssigned",msg=>{
       console.log('*****eAgentContactAssigned*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentContactEnded",msg=>{
       console.log('*****eAgentContactEnded*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentContactWrappedUp",msg=>{
       console.log('*****eAgentContactWrappedUp*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentOfferContact",msg=>{
       console.log('*****eAgentOfferContact*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentOfferContactRona",msg=>{
       console.log('*****eAgentOfferContactRona*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentOfferConsult",msg=>{
       console.log('*****eAgentOfferConsult*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentWrapup",msg=>{
       console.log('*****eAgentWrapup*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentContactHeld",msg=>{
       console.log('*****eAgentContactHeld*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentContactUnHeld",msg=>{
       console.log('*****eAgentContactUnHeld*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eCallRecordingStarted",msg=>{
       console.log('*****eCallRecordingStarted*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentConsultCreated",msg=>{
       console.log('*****eAgentConsultCreated*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentConsultConferenced",msg=>{
       console.log('*****eAgentConsultConferenced*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentConsultEnded",msg=>{
       console.log('*****eAgentConsultEnded*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentCtqCancelled",msg=>{
       console.log('*****eAgentCtqCancelled*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentConsulting",msg=>{
       console.log('*****eAgentConsulting*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentConsultFailed",msg=>{
       console.log('*****eAgentConsultFailed*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentConsultEndFailed",msg=>{
       console.log('*****eAgentConsultEndFailed*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentCtqFailed",msg=>{
       console.log('*****eAgentCtqFailed*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentCtqCancelFailed",msg=>{
       console.log('*****eAgentCtqCancelFailed*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
     Desktop.agentContact.addEventListener("eAgentConsultConferenceEndFailed",msg=>{
       console.log('*****eAgentConsultConferenceEndFailed*****');
-      this.publishToSalesforce(JSON.stringify(msg));
+      this.publishToSalesforce(msg);
     });
   }
 }
 
-customElements.define('sa-ds-sdk', DesktopSDKSample);
+customElements.define('SFEventsWidget', DesktopSDKSample);
