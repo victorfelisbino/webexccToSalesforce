@@ -27,13 +27,13 @@ How to run the sample widget:
 
 **Step 1:**
 
-- To use the Existing SFEventsWidget.js on your localhost
+- To use the Existing sf-events-widget.js on your localhost
 - Inside this project on your terminal type: `npm run dev`
 - this should run the app on your localhost:5000
 
 **Step 2:**
 
-- In the **_SFEventsWidget.js_** file, line 360. Change the **vteamId** to your own queue that you want to transfer to.
+- In the **_sf-events-widget.js_** file, line 360. Change the **vteamId** to your own queue that you want to transfer to.
 
 **Step 3:**
 

@@ -98,6 +98,7 @@ class DesktopSDKSample extends HTMLElement {
   }
 
   async init() {
+    console.log('*** sf-events-widget - Starting widget!!! ***');
     // Initiating desktop config
     Desktop.config.init();
     // Get the outDial ANI
@@ -126,6 +127,7 @@ class DesktopSDKSample extends HTMLElement {
 
   // Sample function to print latest data of agent
   getAgentInfo() {
+    console.log('*** sf-events-widget - Getting agent information ***');
     const latestData = Desktop.agentStateInfo.latestData;
   }
 
@@ -219,6 +221,7 @@ class DesktopSDKSample extends HTMLElement {
 
   // Subscribing to Agent contact event
   subscribeAgentContactDataEvents() {
+    console.log('*** sf-events-widget - Subscribing to all events!!! ***');
     //Listofavailableagent-contactaqmnotifsevents:
     Desktop.agentContact.addEventListener("eAgentContact",msg=>{
       console.log('*****eAgentContact*****');
@@ -307,4 +310,4 @@ class DesktopSDKSample extends HTMLElement {
   }
 }
 
-customElements.define('SFEventsWidget', DesktopSDKSample);
+customElements.define('sf-events-widget', DesktopSDKSample);
